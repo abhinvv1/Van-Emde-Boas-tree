@@ -34,3 +34,54 @@ Thumbs.db
 /.bundle/
 rake_tasks
 Gemfile.lock
+# Compiled files
+*.gem
+*.o
+*.so
+*.bundle
+*.dylib
+*.dll
+*.a
+
+# Build artifacts
+/ext/**/Makefile
+/ext/**/mkmf.log
+/lib/**/*.so
+/lib/**/*.bundle
+
+# Test artifacts
+/test/tmp/
+/test/version_tmp/
+/tmp/
+
+# Gem package
+/pkg/
+
+# Documentation
+/doc/
+/rdoc/
+/.yardoc/
+
+# Bundler
+/vendor/bundle/
+/.bundle/
+Gemfile.lock
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# RVM/rbenv
+.ruby-version
+.ruby-gemset
