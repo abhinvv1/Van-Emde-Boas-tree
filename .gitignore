@@ -33,3 +33,4 @@ Thumbs.db
 /vendor/bundle/
 /.bundle/
 rake_tasks
+Gemfile.lock
