@@ -5,8 +5,8 @@ require_relative "lib/veb_tree/version"
 Gem::Specification.new do |spec|
   spec.name = "veb_tree"
   spec.version = VebTree::VERSION
-  spec.authors = ["Your Name"]  # CHANGE THIS
-  spec.email = ["your.email@example.com"]  # CHANGE THIS
+  spec.authors = ["pixelcaliber"]
+  spec.email = ["abhinav.1e4@gmail.com"]
 
   spec.summary = "High-performance Van Emde Boas tree for integer sets with O(log log U) operations"
   spec.description = <<~DESC
@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
     and successor/predecessor lookups within a bounded universe.
   DESC
   
-  spec.homepage = "https://github.com/yourusername/veb_tree"  # CHANGE THIS
+  spec.homepage = "https://github.com/abhinvv1/Van-Emde-Boas-tree"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 2.7.0"
 
