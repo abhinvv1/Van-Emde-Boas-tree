@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run weekly to catch regressions
+    - cron: '0 0 * * 0'
+
+jobs:
+  test:
+    name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        ruby: ['2.7', '3.0', '3.1', '3.2', '3.3']
+        
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    
+    - name: Install dependencies
+      run: bundle install
+    
+    - name: Compile extension
+      run: bundle exec rake compile
+    
+    - name: Run tests
+      run: bundle exec rake test
+    
+    - name: Run benchmarks (quick)
+      run: bundle exec ruby benchmark/comparison.rb
+      continue-on-error: true
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+        bundler-cache: true
+    
+    - name: Check C++ formatting
+      run: |
+        # Placeholder for clang-format check in future
+        echo "C++ formatting check (TBD)"
+    
+    - name: Check for warnings
+      run: |
+        bundle exec rake compile 2>&1 | tee compile.log
+        ! grep -i warning compile.log || (echo "Compilation warnings found" && exit 1)
