@@ -1,128 +1,268 @@
 # frozen_string_literal: true
 
+require 'set'
+
 module VebTree
-  # Pure Ruby fallback implementation of Van Emde Boas Tree
-  # This is significantly slower than the C++ version but allows
-  # the gem to work in environments where native extensions cannot be compiled.
-  #
-  # Performance: O(log log U) operations but with higher constant factors
   class PureRuby
     attr_reader :universe_size, :size
     
-    # Initialize a new VEB tree
-    # @param universe_size [Integer] Maximum value that can be stored (exclusive)
+    NIL_VALUE = -1
+    
     def initialize(universe_size)
       raise ArgumentError, "Universe size must be positive" if universe_size <= 0
       
-      # Round up to next power of 2
       @universe_size = next_power_of_2(universe_size)
       warn "Universe size #{universe_size} rounded up to #{@universe_size}" if @universe_size != universe_size
       
       @size = 0
-      @min = nil
-      @max = nil
+      @min = NIL_VALUE
+      @max = NIL_VALUE
       
-      # For Stage 1, use a simple Set as placeholder
-      # Full vEB structure will be implemented in Stage 2
-      @data = Set.new
+      # Base case
+      if @universe_size <= 2
+        @base_case = true
+        return
+      end
+      
+      @base_case = false
+      
+      # Calculate sqrt
+      log_u = Math.log2(@universe_size).to_i
+      @sqrt_size = 1 << (log_u / 2)
+      @num_clusters = @universe_size / @sqrt_size
+      
+      # Lazy allocation
+      @clusters = Array.new(@num_clusters)
+      @summary = nil
     end
     
-    # Insert a key into the tree
-    # @param key [Integer] Key to insert
-    # @return [Boolean] true if inserted, false if already present
     def insert(key)
       validate_key(key)
+      return false if include?(key)
       
-      if @data.add?(key)
+      # Empty tree
+      if @min == NIL_VALUE
+        @min = @max = key
         @size += 1
-        @min = key if @min.nil? || key < @min
-        @max = key if @max.nil? || key > @max
-        true
-      else
-        false
+        return true
       end
-    end
-    
-    # Delete a key from the tree
-    # @param key [Integer] Key to delete
-    # @return [Boolean] true if deleted, false if not present
-    def delete(key)
-      return false if key < 0 || key >= @universe_size
       
-      if @data.delete?(key)
-        @size -= 1
-        recalculate_min_max if @size > 0
-        true
-      else
-        false
+      # Base case
+      if @base_case
+        @min = key if key < @min
+        @max = key if key > @max
+        @size += 1
+        return true
       end
+      
+      # Ensure key is not min
+      if key < @min
+        key, @min = @min, key
+      end
+      
+      @max = key if key > @max
+      
+      # Recursive insert
+      h = high(key)
+      l = low(key)
+      
+      # Lazy create cluster
+      @clusters[h] ||= PureRuby.new(@sqrt_size)
+      
+      # If cluster was empty, update summary
+      if @clusters[h].min == NIL_VALUE
+        @summary ||= PureRuby.new(@num_clusters)
+        @summary.insert(h)
+        @clusters[h].instance_variable_set(:@min, l)
+        @clusters[h].instance_variable_set(:@max, l)
+        @clusters[h].instance_variable_set(:@size, 1)
+      else
+        @clusters[h].insert(l)
+      end
+      
+      @size += 1
+      true
     end
     
-    # Check if a key is in the tree
-    # @param key [Integer] Key to check
-    # @return [Boolean] true if present
+    def delete(key)
+      return false unless include?(key)
+      
+      # Base case
+      if @base_case
+        if key == @min && key == @max
+          @min = @max = NIL_VALUE
+        elsif key == @min
+          @min = @max
+        else
+          @max = @min
+        end
+        @size -= 1
+        return true
+      end
+      
+      # Only one element
+      if @size == 1
+        @min = @max = NIL_VALUE
+        @size = 0
+        return true
+      end
+      
+      # Replace min with successor if deleting min
+      if key == @min
+        first_cluster = @summary.min
+        key = index(first_cluster, @clusters[first_cluster].min)
+        @min = key
+      end
+      
+      # Recursive delete
+      h = high(key)
+      l = low(key)
+      
+      @clusters[h].delete(l) if @clusters[h]
+      
+      # If cluster is empty, remove from summary
+      if @clusters[h] && @clusters[h].min == NIL_VALUE
+        @summary.delete(h)
+        @clusters[h] = nil
+        
+        # Update max if necessary
+        if key == @max
+          summary_max = @summary.max
+          if summary_max == NIL_VALUE
+            @max = @min
+          else
+            @max = index(summary_max, @clusters[summary_max].max)
+          end
+        end
+      elsif key == @max && @clusters[h]
+        @max = index(h, @clusters[h].max)
+      end
+      
+      @size -= 1
+      true
+    end
+    
     def include?(key)
       return false if key < 0 || key >= @universe_size
-      @data.include?(key)
+      return true if key == @min || key == @max
+      return false if @base_case
+      
+      h = high(key)
+      @clusters[h] && @clusters[h].include?(low(key))
     end
     alias member? include?
     
-    # Get the minimum key
-    # @return [Integer, nil] Minimum key or nil if empty
     def min
-      @min
+      @min == NIL_VALUE ? nil : @min
     end
     
-    # Get the maximum key
-    # @return [Integer, nil] Maximum key or nil if empty
     def max
-      @max
+      @max == NIL_VALUE ? nil : @max
     end
     
-    # Find the successor of a key
-    # @param key [Integer] Key to find successor of
-    # @return [Integer, nil] Smallest key > key, or nil if none exists
     def successor(key)
-      return nil if key >= @max
-      @data.select { |k| k > key }.min
+      return nil if @min == NIL_VALUE
+      
+      # Base case
+      if @base_case
+        return @min if key < @min
+        return @max if key < @max
+        return nil
+      end
+      
+      return @min if key < @min
+      
+      h = high(key)
+      l = low(key)
+      
+      # Check same cluster
+      if @clusters[h] && l < @clusters[h].max
+        offset = @clusters[h].successor(l)
+        return index(h, offset)
+      end
+      
+      # Next cluster
+      succ_cluster = @summary.successor(h)
+      return nil if succ_cluster == NIL_VALUE
+      
+      offset = @clusters[succ_cluster].min
+      index(succ_cluster, offset)
     end
     
-    # Find the predecessor of a key
-    # @param key [Integer] Key to find predecessor of
-    # @return [Integer, nil] Largest key < key, or nil if none exists
     def predecessor(key)
-      return nil if key <= @min
-      @data.select { |k| k < key }.max
+      return nil if @max == NIL_VALUE
+      
+      # Base case
+      if @base_case
+        return @max if key > @max
+        return @min if key > @min
+        return nil
+      end
+      
+      return @max if key > @max
+      
+      h = high(key)
+      l = low(key)
+      
+      # Check same cluster
+      if @clusters[h] && l > @clusters[h].min
+        offset = @clusters[h].predecessor(l)
+        return index(h, offset)
+      end
+      
+      # Previous cluster
+      pred_cluster = @summary.predecessor(h)
+      return @min if pred_cluster == NIL_VALUE && key > @min
+      return nil if pred_cluster == NIL_VALUE
+      
+      offset = @clusters[pred_cluster].max
+      index(pred_cluster, offset)
     end
     
-    # Check if tree is empty
-    # @return [Boolean] true if empty
     def empty?
       @size == 0
     end
     
-    # Clear all elements
     def clear
-      @data.clear
+      @min = @max = NIL_VALUE
       @size = 0
-      @min = nil
-      @max = nil
+      unless @base_case
+        @summary&.clear
+        @clusters.fill(nil)
+      end
       self
     end
     
-    # Enumerate all keys in ascending order
-    def each(&block)
+    def each
       return enum_for(:each) unless block_given?
-      @data.sort.each(&block)
+      
+      current = @min
+      while current && current != NIL_VALUE
+        yield current
+        break if current == @max
+        current = successor(current)
+      end
+      
+      self
     end
     
-    # Convert to array
-    # @return [Array<Integer>] Sorted array of all keys
     def to_a
-      @data.sort
+      each.to_a
     end
     
     private
+    
+    def high(x)
+      x / @sqrt_size
+    end
+    
+    def low(x)
+      x % @sqrt_size
+    end
+    
+    def index(high, low)
+      high * @sqrt_size + low
+    end
     
     def validate_key(key)
       raise ArgumentError, "Key must be non-negative" if key < 0
@@ -132,15 +272,6 @@ module VebTree
     def next_power_of_2(n)
       return 1 if n <= 1
       2 ** (Math.log2(n).ceil)
-    end
-    
-    def recalculate_min_max
-      if @size == 0
-        @min = @max = nil
-      else
-        @min = @data.min
-        @max = @data.max
-      end
     end
   end
 end

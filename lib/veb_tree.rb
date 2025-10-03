@@ -5,23 +5,28 @@ require_relative "veb_tree/version"
 module VebTree
   class Error < StandardError; end
   
-  # Try to load the native extension
+  # Load the native extension
   begin
     require_relative "veb_tree/veb_tree"
     NATIVE_EXTENSION_LOADED = true
   rescue LoadError => e
-    warn "VebTree: Failed to load native extension (#{e.message}), falling back to pure Ruby implementation"
-    NATIVE_EXTENSION_LOADED = false
-    require_relative "veb_tree/pure_ruby"
-  end
-  
-  # Expose the Tree class at module level for convenience
-  # This will be either the C++ version or pure Ruby version
-  def self.Tree(*args)
-    if NATIVE_EXTENSION_LOADED
-      VebTree::Tree.new(*args)
-    else
-      VebTree::PureRuby.new(*args)
-    end
+    raise Error, <<~MSG
+      Failed to load VebTree native extension!
+      
+      Error: #{e.message}
+      
+      VebTree requires a C++17 compatible compiler to build the native extension.
+      
+      Requirements:
+        - Linux: GCC 7+ or Clang 5+
+        - macOS: Xcode Command Line Tools
+        - Windows: MinGW-w64 or MSVC 2017+
+      
+      To install:
+        1. Install a C++ compiler for your platform
+        2. Run: gem install veb_tree
+      
+      For more help, see: https://github.com/yourusername/veb_tree
+    MSG
   end
 end
