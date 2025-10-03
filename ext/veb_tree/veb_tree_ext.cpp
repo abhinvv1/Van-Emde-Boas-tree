@@ -1,3 +1,7 @@
+#if defined(__APPLE__) && defined(finite)
+#undef finite
+#endif
+
 #include "veb_tree_ext.h"
 #include <algorithm>
 

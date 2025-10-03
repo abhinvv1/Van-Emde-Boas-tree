@@ -34,12 +34,22 @@ jobs:
         make clean || true
         make
         cd ../..
+        
+        # Create lib directory structure
         mkdir -p lib/veb_tree
+        
+        # Copy compiled extension (try both .so and .bundle)
         if [ -f ext/veb_tree/veb_tree.so ]; then
           cp ext/veb_tree/veb_tree.so lib/veb_tree/
-        elif [ -f ext/veb_tree/veb_tree.bundle ]; then
-          cp ext/veb_tree/veb_tree.bundle lib/veb_tree/
+          echo "Copied veb_tree.so"
         fi
+        if [ -f ext/veb_tree/veb_tree.bundle ]; then
+          cp ext/veb_tree/veb_tree.bundle lib/veb_tree/
+          echo "Copied veb_tree.bundle"
+        fi
+        
+        # Verify file exists
+        ls -la lib/veb_tree/
     
     - name: Run tests
       run: ruby -Ilib:test test/veb_tree_test.rb

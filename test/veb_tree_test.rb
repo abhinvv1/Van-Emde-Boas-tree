@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "set"
 
 class VebTreeTest < Minitest::Test
   def setup
