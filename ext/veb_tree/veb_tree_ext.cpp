@@ -1,5 +1,29 @@
-#include "veb_tree_ext.h"
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <cmath>
+#include <vector>
+#include <limits>
 #include <algorithm>
+
+#include <ruby.h>
+
+#if defined(__APPLE__) && defined(RUBY_API_VERSION_CODE)
+  #if RUBY_API_VERSION_CODE < 30000
+    // Ruby 2.7's missing.h pollutes the global namespace
+    #ifdef finite
+      #undef finite
+    #endif
+    #ifdef isnan
+      #undef isnan
+    #endif
+    #ifdef isinf
+      #undef isinf
+    #endif
+  #endif
+#endif
+
+#include "veb_tree_ext.h"
 
 namespace VebTree {
 
