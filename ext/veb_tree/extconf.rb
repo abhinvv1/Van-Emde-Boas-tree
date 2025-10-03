@@ -9,11 +9,14 @@ end
 
 # Determine the C++ compiler
 if RUBY_PLATFORM =~ /darwin/
-  # macOS: Force use of clang++
   RbConfig::MAKEFILE_CONFIG["CXX"] = "clang++"
   RbConfig::MAKEFILE_CONFIG["LDSHAREDXX"] = "clang++ -dynamic -bundle"
+  
+  if RUBY_VERSION < "3.0"
+    $CXXFLAGS << " -D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION"
+    $CXXFLAGS << " -Wno-error=implicit-function-declaration"
+  end
 else
-  # Linux/Windows: Use g++ or whatever is available
   RbConfig::MAKEFILE_CONFIG["CXX"] = ENV["CXX"] || "g++"
 end
 
@@ -23,14 +26,11 @@ $CXXFLAGS << " -std=c++17 -Wall -Wextra -O2"
 # Platform-specific settings
 case RUBY_PLATFORM
 when /darwin/
-  # macOS specific flags
   $CXXFLAGS << " -stdlib=libc++"
   $LDFLAGS << " -stdlib=libc++"
 when /linux/
-  # Linux specific flags
   $LDFLAGS << " -lstdc++"
 when /mingw|mswin/
-  # Windows specific flags
   $CXXFLAGS << " -static-libgcc -static-libstdc++"
 end
 
@@ -41,5 +41,4 @@ else
   $CXXFLAGS << " -DNDEBUG"
 end
 
-# Create Makefile
 create_makefile("veb_tree/veb_tree")
