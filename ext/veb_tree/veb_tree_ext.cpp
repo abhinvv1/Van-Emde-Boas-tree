@@ -326,6 +326,9 @@ std::vector<uint64_t> VEBTree::to_vector() const {
 // Ruby Wrapper Implementation
 // ============================================================================
 
+// Ruby 2.x vs 3.x compatibility
+#if RUBY_API_VERSION_CODE >= 30000
+// Ruby 3.0+
 static const rb_data_type_t veb_tree_type = {
     "VebTree::Tree",
     {
@@ -338,6 +341,24 @@ static const rb_data_type_t veb_tree_type = {
     nullptr, // data
     RUBY_TYPED_FREE_IMMEDIATELY
 };
+#else
+// Ruby 2.7
+static void veb_tree_free(void* ptr) {
+    delete static_cast<VEBTree*>(ptr);
+}
+
+static const rb_data_type_t veb_tree_type = {
+    "VebTree::Tree",
+    {
+        nullptr, // dmark
+        veb_tree_free, // dfree
+        nullptr, // dsize
+    },
+    nullptr, // parent
+    nullptr, // data
+    RUBY_TYPED_FREE_IMMEDIATELY
+};
+#endif
 
 VEBTree* TreeWrapper::get_tree(VALUE self) {
     VEBTree* tree;

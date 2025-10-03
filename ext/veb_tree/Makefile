@@ -90,7 +90,7 @@ CFLAGS   = $(CCDLFLAGS) $(cflags)  -fPIC $(ARCH_FLAG)
 INCFLAGS = -I. -I$(arch_hdrdir) -I$(hdrdir)/ruby/backward -I$(hdrdir) -I$(srcdir)
 DEFS     = 
 CPPFLAGS =   $(DEFS) $(cppflags)
-CXXFLAGS = $(CCDLFLAGS)  -std=c++17 -Wall -Wextra -O3 -DNDEBUG $(ARCH_FLAG)
+CXXFLAGS = $(CCDLFLAGS)  -std=c++17 -Wall -Wextra -O2 -DNDEBUG $(ARCH_FLAG)
 ldflags  = -L. -fstack-protector-strong -rdynamic -Wl,-export-dynamic -Wl,--no-as-needed -lstdc++
 dldflags = -Wl,--compress-debug-sections=zlib 
 ARCH_FLAG = 
