@@ -1,0 +1,73 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        ruby: ['2.7', '3.0', '3.1', '3.2', '3.3']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    
+    - name: Install dependencies
+      run: |
+        gem install bundler
+        bundle install
+    
+    - name: Compile extension
+      run: |
+        cd ext/veb_tree
+        ruby extconf.rb
+        make
+        cd ../..
+        mkdir -p lib/veb_tree
+        cp ext/veb_tree/veb_tree.{so,bundle} lib/veb_tree/ 2>/dev/null || true
+    
+    - name: Run tests
+      run: ruby -Ilib:test test/veb_tree_test.rb
+    
+    - name: Test gem can be required
+      run: ruby -Ilib -e "require 'veb_tree'; puts 'VebTree loaded successfully'"
+
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+    
+    - name: Check for compilation warnings
+      run: |
+        cd ext/veb_tree
+        ruby extconf.rb
+        make 2>&1 | tee compile.log
+        if grep -i "error:" compile.log; then
+          echo "Compilation errors found!"
+          exit 1
+        fi
+        echo "No compilation errors"
+        

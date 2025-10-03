@@ -1,5 +1,9 @@
 # VebTree - Van Emde Boas Tree
 
+[![Tests](https://github.com/abhinvv1/Van-Emde-Boas-tree/workflows/Tests/badge.svg)](https://github.com/abhinvv1/Van-Emde-Boas-tree/actions)
+[![Gem Version](https://badge.fury.io/rb/veb_tree.svg)](https://badge.fury.io/rb/veb_tree)
+
+
 A high-performance Van Emde Boas (vEB) tree implementation for Ruby with a C++ core, providing **O(log log U)** time complexity for integer set operations.
 
 ## Features
