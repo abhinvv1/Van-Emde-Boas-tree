@@ -27,7 +27,13 @@ jobs:
         ruby-version: ${{ matrix.ruby }}
     
     - name: Install dependencies
-      run: gem install rake minitest
+      run: |
+        gem install rake
+        if [[ "${{ matrix.ruby }}" < "3.2" ]]; then
+          gem install minitest -v 5.26.1
+        else
+          gem install minitest
+        fi
     
     - name: Compile extension
       run: |
