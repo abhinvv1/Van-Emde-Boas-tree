@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
 
@@ -10,20 +10,22 @@ jobs:
   test:
     name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        ruby: ['2.7', '3.0', '3.1', '3.2', '3.3']
-        
+        ruby: ['2.7', '3.0', '3.1', '3.2', '3.3', 'head']
+    continue-on-error: ${{ matrix.ruby == 'head' }}
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby }}
-    
+
     - name: Install dependencies
       run: |
         gem install rake
@@ -32,7 +34,7 @@ jobs:
         else
           gem install minitest
         fi
-    
+
     - name: Compile extension
       run: |
         cd ext/veb_tree
@@ -40,43 +42,38 @@ jobs:
         make clean || true
         make
         cd ../..
-        
-        # Create lib directory structure
+
         mkdir -p lib/veb_tree
-        
-        # Copy compiled extension (try both .so and .bundle)
+
         if [ -f ext/veb_tree/veb_tree.so ]; then
-          cp ext/veb_tree/veb_tree.so lib/veb_tree/
-          echo "Copied veb_tree.so"
+          cp -v ext/veb_tree/veb_tree.so lib/veb_tree/
         fi
         if [ -f ext/veb_tree/veb_tree.bundle ]; then
-          cp ext/veb_tree/veb_tree.bundle lib/veb_tree/
-          echo "Copied veb_tree.bundle"
+          cp -v ext/veb_tree/veb_tree.bundle lib/veb_tree/
         fi
-        
-        # Verify file exists
+
         ls -la lib/veb_tree/
-    
+
     - name: Run tests
       run: ruby -Ilib:test test/veb_tree_test.rb
-    
+
     - name: Verify gem loads
-      run: ruby -Ilib -e "require 'veb_tree'; puts 'VebTree v' + VebTree::VERSION + ' works on Ruby ' + RUBY_VERSION"
+      run: ruby -Ilib -e "require 'veb_tree'; puts 'VebTree v' + VebTree::VERSION + ' loaded on Ruby ' + RUBY_VERSION"
 
   build:
     name: Build gem
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: '3.3'
-    
+
     - name: Build gem
       run: gem build veb_tree.gemspec
-    
+
     - name: List gem contents
       run: tar -tzf veb_tree-*.gem | head -30
