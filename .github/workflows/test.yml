@@ -29,14 +29,11 @@ jobs:
     - name: Install dependencies
       run: |
         gem install rake
-        case "${{ matrix.ruby }}" in
-          2.*|3.0|3.1)
-            gem install minitest -v 5.26.1
-            ;;
-          *)
-            gem install minitest
-            ;;
-        esac
+        if [ "${{ matrix.ruby }}" = "2.7" ] || [ "${{ matrix.ruby }}" = "3.0" ] || [ "${{ matrix.ruby }}" = "3.1" ]; then
+          gem install minitest -v 5.26.1
+        else
+          gem install minitest
+        fi
     
     - name: Compile extension
       run: |
