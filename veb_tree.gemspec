@@ -28,6 +28,7 @@ Gem::Specification.new do |spec|
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
   spec.metadata["documentation_uri"] = "https://rubydoc.info/gems/veb_tree"
+  spec.metadata["github_repo"] = "ssh://github.com/abhinvv1/Van-Emde-Boas-tree"
 
   # Specify which files should be added to the gem
   spec.files = Dir.glob(%w[
